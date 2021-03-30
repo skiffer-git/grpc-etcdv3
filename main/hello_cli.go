@@ -11,7 +11,7 @@ import (
 func main(){
 	ticker := time.NewTicker(2000 * time.Millisecond)
 	for t := range ticker.C {
-		etcdAddr := "106.52.125.183:2379"  //your etcd svr
+		etcdAddr := "111.52.125.183:2379"  //your etcd svr
 		conn := getcdv3.GetConn("sk", etcdAddr,"myrpc")
 		if(conn == nil){
 			fmt.Println(conn)

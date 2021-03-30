@@ -30,7 +30,7 @@ func work(port int) {
 		return
 	}
 	//"%s:///%s"
-	etcdAddr := "106.52.125.183:2379"
+	etcdAddr := "111.52.125.183:2379"
 	getcdv3.RegisterEtcd("sk", etcdAddr, "127.0.0.1", port, "myrpc",10)
 
 	s := grpc.NewServer()
