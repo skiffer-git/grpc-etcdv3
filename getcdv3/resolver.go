@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+//	"go.etcd.io/etcd/mvcc/mvccpb"
+
+    "github.com/coreos/etcd/mvcc/mvccpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer/roundrobin"
 	"google.golang.org/grpc/resolver"
