@@ -64,7 +64,6 @@ func RegisterEtcd(schema, etcdAddr, myHost string, myPort int, serviceName strin
 				} else {
 					break FLOOP
 				}
-			default:
 			}
 		}
 	}()

@@ -2,20 +2,19 @@ module github.com/skiffer-git/grpc-etcdv3
 
 go 1.16
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.26.0
-
-replace github.com/coreos/bbolt v1.3.4 => go.etcd.io/bbolt v1.3.4
-
 require (
-	github.com/coreos/bbolt v1.3.4 // indirect
-	github.com/coreos/etcd v3.3.25+incompatible // indirect
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/protobuf v1.5.2
-	github.com/google/uuid v1.2.0 // indirect
-	github.com/prometheus/client_golang v1.10.0 // indirect
-	go.etcd.io/etcd v3.3.25+incompatible
-	go.uber.org/zap v1.16.0 // indirect
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
-	google.golang.org/grpc v1.26.0
+	github.com/golang/protobuf v1.4.2
+	github.com/google/go-cmp v0.5.2 // indirect
+	github.com/json-iterator/go v1.1.9 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/stretchr/testify v1.6.1 // indirect
+	go.etcd.io/etcd v0.0.0-20200402134248-51bdeb39e698
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073 // indirect
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
+	google.golang.org/grpc v1.29.1
+	google.golang.org/protobuf v1.25.0
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+
 )
