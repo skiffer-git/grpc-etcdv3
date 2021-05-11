@@ -17,9 +17,20 @@ type RegEtcd struct{
 }
 var rEtcd *RegEtcd
 
-//    "%s:///%s"
+// "%s:///%s/"
 func GetPrefix(schema, serviceName string)(string){
 	return fmt.Sprintf("%s:///%s/", schema, serviceName)
+}
+
+// "%s:///%s"
+func GetPrefix4Unique(schema, serviceName string)(string){
+	return fmt.Sprintf("%s:///%s", schema, serviceName)
+}
+
+// "%s:///%s/" ->  "%s:///%s:ip:port"
+func RegisterEtcd4Unique(schema, etcdAddr, myHost string, myPort int, serviceName string, ttl int)(error) {
+	serviceName = serviceName+":"+net.JoinHostPort(myHost,  strconv.Itoa(myPort))
+	return RegisterEtcd(schema, etcdAddr, myHost, myPort, serviceName, ttl)
 }
 
 //etcdAddr separated by commas
@@ -60,7 +71,6 @@ func RegisterEtcd(schema, etcdAddr, myHost string, myPort int, serviceName strin
 			select {
 			case _, ok := <-kresp:
 				if ok == true{
-				//	fmt.Println("keepalive resp: ", r)
 				} else {
 					break FLOOP
 				}
