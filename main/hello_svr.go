@@ -30,8 +30,9 @@ func work(port int) {
 		return
 	}
 	//"%s:///%s"
-	etcdAddr := "111.52.125.183:2379"
-	getcdv3.RegisterEtcd("sk", etcdAddr, "127.0.0.1", port, "myrpc",10)
+	etcdAddr := "47.112.160.66:2379"
+	getcdv3.RegisterEtcd("sk", etcdAddr, "127.0.0.1", port, "myrpc1",10)
+	getcdv3.RegisterEtcd4Unique("sk", etcdAddr, "127.0.0.1", port, "myrpc2",10)
 
 	s := grpc.NewServer()
 	helloworld.RegisterHelloServer(s, &server{})
@@ -40,6 +41,6 @@ func work(port int) {
 }
 
 func  main()  {
-	go work(22222)
+	//go work(22222)
 	work(44444)
 }
