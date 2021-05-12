@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+
+var gEtcdCli     *clientv3.Client
+var gEtcdMu      sync.Mutex
+
 type Resolver struct {
 	etcdAddr string
 	addrDict map[string]resolver.Address
@@ -113,17 +117,20 @@ func GetBuild(schema, etcdaddr, servicename string) (*Resolver){
 	r.schema = schema
 	r.serviceName = servicename
 
-	//etcd client
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: strings.Split(r.etcdAddr, ","),
-
-	})
-
-	if err != nil {
-		r.cli  = nil
+	gEtcdMu.Lock()
+	if gEtcdCli == nil {
+		var err error
+		//etcd client
+		gEtcdCli, err = clientv3.New(clientv3.Config{
+			Endpoints: strings.Split(r.etcdAddr, ","),
+		})
+		if err != nil {
+			gEtcdCli = nil
+		}
 	}
-	r.cli = cli
+	gEtcdMu.Unlock()
 
+	r.cli = gEtcdCli
 	return r
 }
 
@@ -131,11 +138,23 @@ func  GetConn4Unique(schema, etcdaddr, servicename string) ([]*grpc.ClientConn) 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	//     "%s:///%s"
 	prefix := GetPrefix4Unique(schema, servicename)
-	//etcd client
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: strings.Split(etcdaddr, ","),
-	})
-	resp, err := cli.Get(ctx, prefix, clientv3.WithPrefix())
+
+
+	gEtcdMu.Lock()
+	if gEtcdCli == nil {
+		var err error
+		//etcd client
+		gEtcdCli, err = clientv3.New(clientv3.Config{
+			Endpoints: strings.Split(etcdaddr, ","),
+		})
+		if err != nil {
+			gEtcdCli = nil
+		}
+	}
+	gEtcdMu.Unlock()
+
+
+	resp, err := gEtcdCli.Get(ctx, prefix, clientv3.WithPrefix())
 	//  "%s:///%s:ip:port"   -> %s:ip:port
 	allService := make([]string, 0)
 	if err == nil {
