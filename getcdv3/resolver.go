@@ -13,23 +13,66 @@ import (
 	"time"
 )
 
+var (
+	service2pool   map[string]*Pool = make(map[string]*Pool)
+	service2poolMu sync.Mutex
+)
 
-var gEtcdCli     *clientv3.Client
-var gEtcdMu      sync.Mutex
+func GetconnFactory(schema, etcdaddr, servicename string) (*grpc.ClientConn, error) {
+	c := GetConn(schema, etcdaddr, servicename)
+	if c != nil {
+		return c, nil
+	} else {
+		return c, fmt.Errorf("GetConn failed")
+	}
+}
+
+func GetConnPool(schema, etcdaddr, servicename string) (*ClientConn, error) {
+	//get pool
+	p := NewPool(schema, etcdaddr, servicename)
+	//poo->get
+
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1000*time.Millisecond))
+
+	c, err := p.Get(ctx)
+	fmt.Println(err)
+	return c, err
+
+}
+
+func NewPool(schema, etcdaddr, servicename string) *Pool {
+
+	if _, ok := service2pool[schema+servicename]; !ok {
+		//
+		service2poolMu.Lock()
+		if _, ok1 := service2pool[schema+servicename]; !ok1 {
+			p, err := New(GetconnFactory, schema, etcdaddr, servicename, 5, 10, 1)
+			if err == nil {
+				service2pool[schema+servicename] = p
+			}
+		}
+		service2poolMu.Unlock()
+	}
+
+	return service2pool[schema+servicename]
+}
+
+var gEtcdCli *clientv3.Client
+var gEtcdMu sync.Mutex
 
 type Resolver struct {
-	etcdAddr string
-	addrDict map[string]resolver.Address
-	cli     *clientv3.Client
-	cc      resolver.ClientConn
-	serviceName string
-	schema string
+	etcdAddr           string
+	addrDict           map[string]resolver.Address
+	cli                *clientv3.Client
+	cc                 resolver.ClientConn
+	serviceName        string
+	schema             string
 	watchStartRevision int64
 }
 
 var (
-	mu      sync.Mutex
-	allPrefix map[string]int = make (map[string]int)
+	mu        sync.Mutex
+	allPrefix map[string]int = make(map[string]int)
 )
 
 func (r1 *Resolver) ResolveNow(rn resolver.ResolveNowOptions) {
@@ -38,12 +81,12 @@ func (r1 *Resolver) ResolveNow(rn resolver.ResolveNowOptions) {
 func (r1 *Resolver) Close() {
 }
 
-func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error){
-	if(r.cli == nil) {
+func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
+	if r.cli == nil {
 		return nil, fmt.Errorf("etcd clientv3 client failed, etcd:%s", target)
 	}
 	r.cc = cc
-	r.addrDict =  make(map[string]resolver.Address)
+	r.addrDict = make(map[string]resolver.Address)
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	//     "%s:///%s"
@@ -58,21 +101,17 @@ func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts re
 		}
 		r.update(r.addrDict)
 		r.watchStartRevision = resp.Header.Revision + 1
-	//	fmt.Println(resp.Header.Revision)
-	}else {
+		//	fmt.Println(resp.Header.Revision)
+	} else {
 		return nil, fmt.Errorf("etcd get failed, prefix: %s", prefix)
 	}
-
 
 	//goroutine watch
 	go r.watch(prefix)
 	return r, nil
 }
 
-
-
-
-func (r *Resolver) update(addrDict map[string]resolver.Address){
+func (r *Resolver) update(addrDict map[string]resolver.Address) {
 	addrList := make([]resolver.Address, 0, len(addrDict))
 	for _, v := range addrDict {
 		addrList = append(addrList, v)
@@ -80,10 +119,9 @@ func (r *Resolver) update(addrDict map[string]resolver.Address){
 	r.cc.UpdateState(resolver.State{Addresses: addrList})
 }
 
-func(r*Resolver) Scheme() string{
+func (r *Resolver) Scheme() string {
 	return r.schema
 }
-
 
 func (r *Resolver) watch(prefix string) {
 	//only one goroutine for same prefix
@@ -111,7 +149,7 @@ func (r *Resolver) watch(prefix string) {
 	}
 }
 
-func GetBuild(schema, etcdaddr, servicename string) (*Resolver){
+func GetBuild(schema, etcdaddr, servicename string) *Resolver {
 	r := new(Resolver)
 	r.etcdAddr = etcdaddr
 	r.schema = schema
@@ -134,11 +172,10 @@ func GetBuild(schema, etcdaddr, servicename string) (*Resolver){
 	return r
 }
 
-func  GetConn4Unique(schema, etcdaddr, servicename string) ([]*grpc.ClientConn) {
+func GetConn4Unique(schema, etcdaddr, servicename string) []*grpc.ClientConn {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	//     "%s:///%s"
 	prefix := GetPrefix4Unique(schema, servicename)
-
 
 	gEtcdMu.Lock()
 	if gEtcdCli == nil {
@@ -152,7 +189,6 @@ func  GetConn4Unique(schema, etcdaddr, servicename string) ([]*grpc.ClientConn) 
 		}
 	}
 	gEtcdMu.Unlock()
-
 
 	resp, err := gEtcdCli.Get(ctx, prefix, clientv3.WithPrefix())
 	//  "%s:///%s:ip:port"   -> %s:ip:port
@@ -168,7 +204,7 @@ func  GetConn4Unique(schema, etcdaddr, servicename string) ([]*grpc.ClientConn) 
 			k2 := k1[:e]
 			allService = append(allService, k2)
 		}
-	}else {
+	} else {
 		return nil
 	}
 
@@ -193,7 +229,7 @@ func  GetConn4Unique(schema, etcdaddr, servicename string) ([]*grpc.ClientConn) 
 
 }
 
-func GetConn(schema, etcdaddr, servicename string) (*grpc.ClientConn){
+func GetConn(schema, etcdaddr, servicename string) *grpc.ClientConn {
 	resolver.Register(GetBuild(schema, etcdaddr, servicename))
 	conn, err := grpc.Dial(
 		GetPrefix(schema, servicename),
@@ -201,10 +237,8 @@ func GetConn(schema, etcdaddr, servicename string) (*grpc.ClientConn){
 		grpc.WithInsecure(),
 		grpc.WithTimeout(time.Duration(5)*time.Second),
 	)
-	if(err != nil) {
+	if err != nil {
 		return nil
 	}
 	return conn
 }
-
-
